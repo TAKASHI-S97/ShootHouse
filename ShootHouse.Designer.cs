@@ -46,6 +46,7 @@
             Paint += ShootHouse_Paint;
             KeyDown += ShootHouse_KeyDown;
             KeyUp += ShootHouse_KeyUp;
+            MouseDown += ShootHouse_MouseDown;
             ResumeLayout(false);
         }
 

@@ -1,7 +1,18 @@
 ﻿namespace ShootHouse
 {
-    internal class Player(float x, float y) : IDisposable
+    public class Player : Object
     {
+        public Player(float x, float y)
+        {
+            _x = x;
+            _y = y;
+            _angle = 0;
+            _speed = 5f;
+            _bitmap = Properties.Resources.player;
+
+            _shootTimer.Tick += (s, e) => { _shootTimer.Enabled = false; };
+        }
+
         /// <summary>
         /// 移動フラグ（左）
         /// </summary>
@@ -23,82 +34,79 @@
         public bool MoveDown { get; set; } = false;
 
         /// <summary>
-        /// プレイヤー X 座標
+        /// 射撃フラグ
         /// </summary>
-        public float X { get; set; } = x;
+        public bool IsShooting { get; set; } = false;
 
         /// <summary>
-        /// プレイヤー Y 座標
+        /// 射撃タイマー（連射防止用）
         /// </summary>
-        public float Y { get; set; } = y;
+        private static readonly System.Windows.Forms.Timer _shootTimer = new();
 
         /// <summary>
-        /// プレイヤー 向き角度
+        /// 発射した弾リスト
         /// </summary>
-        public double R { get; set; } = 0;
+        private readonly List<Bullet> _bullets = [];
 
         /// <summary>
-        /// プレイヤー 移動速度
+        /// プレイヤーの更新
         /// </summary>
-        public float Speed { get; set; } = 5f;
-
-        /// <summary>
-        /// プレイヤー画像
-        /// </summary>
-        private Bitmap? _bitmap = Properties.Resources.player;
-
-        /// <summary>
-        /// 更新
-        /// </summary>
-        public void Update()
+        /// <param name="px">カーソルの X 座標</param>
+        /// <param name="py">カーソルの Y 座標</param>
+        public void Update(int px, int py)
         {
-            // TODO: あたり判定
-            // 移動処理
-            if (MoveLeft) X -= Speed;
-            if (MoveRight) X += Speed;
-            if (MoveUp) Y -= Speed;
-            if (MoveDown) Y += Speed;
+            // プレイヤーの向きをマウスカーソルに合わせる
+            int dx = px - (int)_x;
+            int dy = py - (int)_y;
 
-            // TODO: 射撃
-        }
-
-        /// <summary>
-        /// 描画
-        /// </summary>
-        public void Draw(Graphics g)
-        {
-            if (_bitmap == null) return;
-
-            var halfW = _bitmap.Width / 2f;
-            var halfH = _bitmap.Height / 2f;
-
-            PointF Rotate(float lx, float ly)
+            if (dx != 0 || dy != 0)
             {
-                float rx = lx * (float)Math.Cos(R) - ly * (float)Math.Sin(R);
-                float ry = lx * (float)Math.Sin(R) + ly * (float)Math.Cos(R);
-                return new PointF(X + rx, Y + ry);
+                _angle = Math.Atan2(dy, dx) + Math.PI / 2;   // プレイヤー画像は上向きが 0 度なので補正
             }
 
-            PointF p0 = Rotate(-halfW, -halfH); // 左上
-            PointF p1 = Rotate(halfW, -halfH);  // 右上
-            PointF p2 = Rotate(-halfW, halfH);  // 左下
-            PointF[] destPoints = [p0, p1, p2];
+            // 移動処理
+            if (MoveLeft) _x -= _speed;
+            if (MoveRight) _x += _speed;
+            if (MoveUp) _y -= _speed;
+            if (MoveDown) _y += _speed;
 
-            g.DrawImage(
-                _bitmap,
-                destPoints,
-                new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
-                GraphicsUnit.Pixel
-            );
+            // 射撃処理
+            if (IsShooting) Shoot();
+
+            // 弾丸の更新
+            foreach (var b in _bullets)
+            {
+                b.Update();
+
+                if (b.Distance > 500f)
+                {
+                    // 飛距離が 500 を超えた弾丸は削除
+                    _bullets.Remove(b);
+                    break;
+                }
+            }
         }
 
-        /// <summary>
-        /// リソース解放
-        /// </summary>
-        public void Dispose()
+        public override void Draw(Graphics g)
         {
-            _bitmap?.Dispose();
-            _bitmap = null;
+            base.Draw(g);
+
+            // 弾丸の描画
+            foreach (var b in _bullets)
+            {
+                b.Draw(g);
+            }
+        }
+
+        private void Shoot()
+        {
+            IsShooting = false;
+
+            // 連射防止
+            if (_shootTimer.Enabled) return;
+
+            _shootTimer.Start();
+            _bullets.Add(new Bullet(_x, _y, _angle));
         }
     }
 }

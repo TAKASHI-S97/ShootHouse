@@ -18,10 +18,10 @@ namespace ShootHouse
 
             // カーソルを十字に変更して中央に移動
             Cursor = new Cursor(new MemoryStream(Properties.Resources.crosshair_cursor));
-            Cursor.Position = PointToScreen(new Point(Size.Width / 2, Size.Height / 2));
+            Cursor.Position = PointToScreen(new Point(ClientSize.Width / 2, ClientSize.Height / 2));
 
             // プレイヤー初期化
-            _player = new Player(Size.Width / 2, Size.Height / 2);
+            _player = new Player(ClientSize.Width / 2, ClientSize.Height / 2);
 
             // タイマー初期化
             _timer.Interval = 16;
@@ -35,17 +35,7 @@ namespace ShootHouse
 
         private void UpdateGame()
         {
-            // プレイヤーの向きをマウスカーソルに合わせる
-            int dx = PointToClient(Cursor.Position).X - (int)_player.X;
-            int dy = PointToClient(Cursor.Position).Y - (int)_player.Y;
-
-            if (dx != 0 || dy != 0)
-            {
-                _player.R = Math.Atan2(dy, dx) + Math.PI / 2;   // プレイヤー画像は上向きが 0 度なので補正
-            }
-
-            // プレイヤー更新
-            _player.Update();
+            _player.Update(PointToClient(Cursor.Position).X, PointToClient(Cursor.Position).Y);
         }
 
         private void ShootHouse_Paint(object sender, PaintEventArgs e)
@@ -94,6 +84,11 @@ namespace ShootHouse
             {
                 _player.MoveDown = false;
             }
+        }
+
+        private void ShootHouse_MouseDown(object sender, MouseEventArgs e)
+        {
+            _player.IsShooting = true;
         }
 
         private void ShootHouse_FormClosed(object sender, FormClosedEventArgs e)
